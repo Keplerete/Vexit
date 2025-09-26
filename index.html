@@ -82,9 +82,6 @@
   textarea:focus, select:focus { outline: none; box-shadow: 0 0 15px #ffaa00cc, inset 0 0 10px #ffaa00cc; background: #12232b; }
   textarea { min-height: 110px; margin-bottom: 14px; }
   .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
-  .examples { margin-top: 12px; display:flex; gap:8px; flex-wrap:wrap }
-  .chip { background:#122632; color:#99e6ff; padding:8px 10px; border-radius:8px; cursor:pointer; border:1px solid rgba(255,170,0,0.06); transition: transform 0.3s, background 0.3s; }
-  .chip:hover { transform: scale(1.05); background:#1b3b4d; }
   button.translate-btn { background-color: #ffaa00; border: none; color: #111; font-size: 1.05rem; font-weight: 700; padding: 12px 18px; border-radius: 12px; cursor: pointer; box-shadow: 0 0 10px #ffaa00aa; transition: all 0.3s ease; }
   button.translate-btn:hover { transform: scale(1.05); background-color:#ffbb33; box-shadow: 0 0 15px #ffaa00; }
   button.translate-btn:active{ transform: translateY(1px);} 
@@ -133,14 +130,6 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="examples">
-    <div class="chip" data-example="x|2|horizontal">Пример: 'x' → бинарно</div>
-    <div class="chip" data-example="x|16|horizontal">Пример: 'x' → HEX</div>
-    <div class="chip" data-example="Привет|2|horizontal">Пример: 'Привет' → бинарно (UTF-8)</div>
-    <div class="chip" data-example="Hello|16|horizontal">Пример: 'Hello' → HEX</div>
-    <div class="chip" data-example="4f|16|decode">Пример декод: 4F →</div>
   </div>
 
   <div style="margin-top:12px;display:flex;gap:8px">
@@ -217,9 +206,187 @@
 </script>
 
 <script>
-// основной код конвертера (оставлен как был)
-// ...
-</script>
+// --- Основной конвертер ---
+(function(){
+  const customSymbols = ['0', '∆', '⧫', '☌', '⚛', '✦', '※'];
 
+  function toCustomBase(num, baseSymbols) {
+    const base = baseSymbols.length;
+    if (num === 0) return baseSymbols[0];
+    let result = '';
+    let n = num;
+    while (n > 0) {
+      const digit = n % base;
+      result = baseSymbols[digit] + result;
+      n = Math.floor(n / base);
+    }
+    return result;
+  }
+
+  function getPadLength(base) {
+    if (base === 'custom') return 4;
+    if (Number(base) === 2) return 8;
+    if (Number(base) === 16) return 2;
+    const baseNum = Number(base);
+    return Math.ceil(Math.log(65535) / Math.log(baseNum));
+  }
+
+  function splitCodes(inputStr, padLength, base, version) {
+    const codes = [];
+    if (!inputStr) return codes;
+    if (version === 'vertical') {
+      const lines = inputStr.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      lines.forEach(line => {
+        // Для декодирования в вертикальном режиме извлекаем только коды (после →)
+        if (line.includes('→')) {
+          line = line.split('→')[1].trim();
+        }
+        
+        if ((base === '2' || base === '16') && !/\s/.test(line)) {
+          for (let i = 0; i < line.length; i += padLength) {
+            codes.push(line.slice(i, i + padLength));
+          }
+        } else {
+          line.split(/\s+/).forEach(tok => { if (tok) codes.push(tok); });
+        }
+      });
+    } else {
+      const joined = inputStr.replace(/\s+/g, '');
+      for (let i = 0; i < joined.length; i += padLength) {
+        codes.push(joined.slice(i, i + padLength));
+      }
+    }
+    return codes;
+  }
+
+  function fromCustomBaseSafe(str) {
+    const base = customSymbols.length;
+    if (!str) return null;
+    let result = 0;
+    for (let i = 0; i < str.length; i++) {
+      const digit = customSymbols.indexOf(str[i]);
+      if (digit === -1) return null;
+      result = result * base + digit;
+    }
+    return result;
+  }
+
+  function convert() {
+    const input = document.getElementById('textInput').value;
+    const base = document.getElementById('baseSelect').value;
+    const output = document.getElementById('output');
+    const decode = document.getElementById('decodeToggle').checked;
+    const version = document.getElementById('versionSelect').value;
+
+    if (!input) {
+      output.textContent = 'Пожалуйста, введите текст для перевода или декодирования.';
+      return;
+    }
+
+    const padLength = getPadLength(base);
+    let result = '';
+
+    try {
+      if (!decode) {
+        // Режим кодирования
+        if (base === 'custom') {
+          if (version === 'vertical') {
+            for (const ch of [...input]) {
+              const cp = ch.codePointAt(0);
+              const encoded = toCustomBase(cp, customSymbols).padStart(padLength, customSymbols[0]);
+              result += `${ch} → ${encoded}\n`;
+            }
+          } else {
+            const codes = [...input].map(ch => toCustomBase(ch.codePointAt(0), customSymbols).padStart(padLength, customSymbols[0]));
+            result = codes.join(' ');
+          }
+        } else if (Number(base) === 2 || Number(base) === 16) {
+          const encoder = new TextEncoder();
+          if (version === 'vertical') {
+            for (const ch of [...input]) {
+              const bytes = Array.from(encoder.encode(ch));
+              if (Number(base) === 2) {
+                const encoded = bytes.map(b => b.toString(2).padStart(8, '0')).join(' ');
+                result += `${ch} → ${encoded}\n`;
+              } else {
+                const encoded = bytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+                result += `${ch} → ${encoded}\n`;
+              }
+            }
+          } else {
+            const allBytes = Array.from(encoder.encode(input));
+            if (Number(base) === 2) {
+              result = allBytes.map(b => b.toString(2).padStart(8, '0')).join(' ');
+            } else {
+              result = allBytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join('');
+            }
+          }
+        } else {
+          const baseNum = Number(base);
+          if (version === 'vertical') {
+            for (const ch of [...input]) {
+              const cp = ch.codePointAt(0);
+              const encoded = cp.toString(baseNum).padStart(padLength, '0');
+              result += `${ch} → ${encoded}\n`;
+            }
+          } else {
+            const codes = [...input].map(ch => ch.codePointAt(0).toString(baseNum).padStart(padLength, '0'));
+            result = codes.join(' ');
+          }
+        }
+      } else {
+        // Режим декодирования
+        if (base === 'custom') {
+          const codes = splitCodes(input, padLength, base, version);
+          const chars = codes.map(codeStr => {
+            const num = fromCustomBaseSafe(codeStr);
+            if (num === null) throw new Error(`Некорректный кастомный код: ${codeStr}`);
+            return String.fromCodePoint(num);
+          });
+          result = chars.join('');
+        } else if (Number(base) === 2 || Number(base) === 16) {
+          const codes = splitCodes(input, padLength, base, version);
+          if (codes.length === 0) {
+            output.textContent = 'Нет кодов для декодирования.';
+            return;
+          }
+          
+          const bytes = codes.map(s => {
+            const num = parseInt(s, Number(base));
+            if (isNaN(num) || num < 0 || num > 255) {
+              throw new Error(`Некорректный байт: ${s}`);
+            }
+            return num;
+          });
+          
+          const byteArray = new Uint8Array(bytes);
+          const decoder = new TextDecoder('utf-8');
+          result = decoder.decode(byteArray);
+        } else {
+          const baseNum = Number(base);
+          const codes = splitCodes(input, padLength, base, version);
+          const chars = codes.map(codeStr => {
+            const num = parseInt(codeStr, baseNum);
+            if (isNaN(num)) throw new Error(`Некорректный код: ${codeStr}`);
+            return String.fromCodePoint(num);
+          });
+          result = chars.join('');
+        }
+      }
+      
+      output.textContent = result;
+    } catch (error) {
+      output.textContent = `Ошибка: ${error.message}`;
+    }
+  }
+
+  // Назначение обработчиков событий
+  document.getElementById('runBtn').addEventListener('click', convert);
+  document.getElementById('clearBtn').addEventListener('click', function() {
+    document.getElementById('textInput').value = '';
+    document.getElementById('output').textContent = '';
+  });
+})();
+</script>
 </body>
 </html>
