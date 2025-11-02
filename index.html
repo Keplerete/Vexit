@@ -2,10 +2,14 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>VexiT — Вызов транскодирования</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
 
   body {
     margin: 0;
@@ -16,9 +20,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: 15px;
     overflow-x: hidden;
     position: relative;
+    -webkit-text-size-adjust: 100%;
   }
 
   .network-canvas {
@@ -32,10 +37,10 @@
   }
 
   header {
-    font-size: 3rem;
+    font-size: clamp(1.8rem, 8vw, 3rem);
     font-weight: 900;
     letter-spacing: 0.15em;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     color: #66ccff;
     user-select: none;
     position: relative;
@@ -43,6 +48,8 @@
     text-shadow:
       0 0 5px #66ccff,
       0 0 15px #66ccff;
+    text-align: center;
+    padding: 0 10px;
   }
   header span {
     color: #ffaa00;
@@ -51,17 +58,18 @@
       0 0 20px #ffaa00;
   }
   p.description {
-    font-size: 1.1rem;
+    font-size: clamp(0.9rem, 3.5vw, 1.1rem);
     max-width: 800px;
-    margin-bottom: 18px;
+    margin-bottom: 15px;
     line-height: 1.45;
     text-align: center;
     position: relative;
     z-index: 2;
+    padding: 0 10px;
   }
   .translator {
     background: rgba(255 255 255 / 0.06);
-    padding: 18px;
+    padding: 15px;
     border-radius: 12px;
     box-shadow:
       0 0 18px #ffaa00cc,
@@ -73,22 +81,130 @@
     transition: box-shadow 0.6s ease-in-out;
   }
   .translator:hover { box-shadow: 0 0 28px #ffbb33dd, inset 0 0 22px #ffbb33dd; }
-  label { font-weight: 700; display: block; margin-bottom: 6px; color: #ffaa00; }
+  label { font-weight: 700; display: block; margin-bottom: 6px; color: #ffaa00; font-size: clamp(0.9rem, 4vw, 1rem); }
   textarea, select {
-    width: 100%; padding: 12px 15px; font-size: 1rem; border-radius: 8px; border: none;
-    background: #0f1a22; color: #eee; resize: vertical; box-sizing: border-box;
-    box-shadow: inset 0 0 6px #223344aa; font-family: 'Share Tech Mono', monospace; transition: box-shadow 0.25s;
+    width: 100%; 
+    padding: 14px;
+    font-size: 16px; /* Предотвращает масштабирование в iOS */
+    border-radius: 8px; 
+    border: none;
+    background: #0f1a22; 
+    color: #eee; 
+    resize: vertical; 
+    box-sizing: border-box;
+    box-shadow: inset 0 0 6px #223344aa; 
+    font-family: 'Share Tech Mono', monospace; 
+    transition: box-shadow 0.25s;
+    -webkit-appearance: none;
   }
-  textarea:focus, select:focus { outline: none; box-shadow: 0 0 15px #ffaa00cc, inset 0 0 10px #ffaa00cc; background: #12232b; }
-  textarea { min-height: 110px; margin-bottom: 14px; }
-  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
-  button.translate-btn { background-color: #ffaa00; border: none; color: #111; font-size: 1.05rem; font-weight: 700; padding: 12px 18px; border-radius: 12px; cursor: pointer; box-shadow: 0 0 10px #ffaa00aa; transition: all 0.3s ease; }
-  button.translate-btn:hover { transform: scale(1.05); background-color:#ffbb33; box-shadow: 0 0 15px #ffaa00; }
-  button.translate-btn:active{ transform: translateY(1px);} 
-  #output { margin-top: 16px; background: #07121a; padding: 14px; border-radius: 10px; min-height: 120px; white-space: pre-wrap; font-family: 'Share Tech Mono', monospace; color: #ccf3ff; box-shadow: inset 0 0 12px #33aaff66; }
-  footer { margin-top: 18px; font-size: 0.85rem; color: #999; padding: 10px 0; text-align: center; width: 100%; position: relative; z-index: 2; }
+  textarea:focus, select:focus { 
+    outline: none; 
+    box-shadow: 0 0 15px #ffaa00cc, inset 0 0 10px #ffaa00cc; 
+    background: #12232b; 
+  }
+  textarea { 
+    min-height: 120px; 
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+  .controls { 
+    display: grid; 
+    grid-template-columns: 1fr; 
+    gap: 12px; 
+    align-items: center;
+  }
+  @media (min-width: 768px) {
+    .controls {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  button {
+    min-height: 50px;
+    font-size: 1.05rem;
+  }
+  button.translate-btn { 
+    background-color: #ffaa00; 
+    border: none; 
+    color: #111; 
+    font-weight: 700; 
+    padding: 14px 20px; 
+    border-radius: 12px; 
+    cursor: pointer; 
+    box-shadow: 0 0 10px #ffaa00aa; 
+    transition: all 0.3s ease;
+    width: 100%;
+    touch-action: manipulation;
+  }
+  button.translate-btn:hover { 
+    transform: scale(1.05); 
+    background-color:#ffbb33; 
+    box-shadow: 0 0 15px #ffaa00; 
+  }
+  button.translate-btn:active{ 
+    transform: translateY(2px);
+  } 
+  #output { 
+    margin-top: 16px; 
+    background: #07121a; 
+    padding: 14px; 
+    border-radius: 10px; 
+    min-height: 120px; 
+    white-space: pre-wrap; 
+    font-family: 'Share Tech Mono', monospace; 
+    color: #ccf3ff; 
+    box-shadow: inset 0 0 12px #33aaff66;
+    overflow-x: auto;
+    font-size: clamp(0.85rem, 3.5vw, 1rem);
+    line-height: 1.4;
+  }
+  footer { 
+    margin-top: 18px; 
+    font-size: 0.8rem; 
+    color: #999; 
+    padding: 10px 0; 
+    text-align: center; 
+    width: 100%; 
+    position: relative; 
+    z-index: 2; 
+  }
   a { color: #66ccff; }
-  .note { font-size:0.9rem; color:#bcd; margin-bottom:10px }
+  .note { 
+    font-size: 0.85rem; 
+    color:#bcd; 
+    margin-bottom:10px;
+    line-height: 1.4;
+  }
+  
+  /* Мобильные улучшения */
+  @media (max-width: 480px) {
+    body {
+      padding: 10px;
+    }
+    .translator {
+      padding: 12px;
+    }
+    textarea, select {
+      padding: 12px;
+    }
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+  }
+  
+  /* Улучшения для очень маленьких экранов */
+  @media (max-width: 360px) {
+    header {
+      font-size: 1.5rem;
+    }
+    p.description {
+      font-size: 0.85rem;
+    }
+    .translator {
+      padding: 10px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -117,22 +233,22 @@
 
     <div>
       <label style="visibility:hidden">x</label>
-      <div style="display:flex;gap:8px;align-items:center">
-        <div style="flex:1">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
           <select id="versionSelect">
             <option value="vertical" selected>Вертикальная (по символу)</option>
             <option value="horizontal">Горизонтальная (поток)</option>
           </select>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="decodeToggle" />
-          <label for="decodeToggle" style="user-select:none;color:#99e6ff">Декодировать</label>
+          <input type="checkbox" id="decodeToggle" style="width:20px;height:20px" />
+          <label for="decodeToggle" style="user-select:none;color:#99e6ff;margin-bottom:0">Декодировать</label>
         </div>
       </div>
     </div>
   </div>
 
-  <div style="margin-top:12px;display:flex;gap:8px">
+  <div style="margin-top:15px;display:flex;flex-direction:column;gap:10px" class="button-group">
     <button class="translate-btn" id="runBtn">Выполнить</button>
     <button class="translate-btn" id="clearBtn" style="background:#223344;color:#ccf3ff">Сброс</button>
   </div>
@@ -158,7 +274,7 @@
   function resize(){ w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
   window.addEventListener('resize', resize); resize();
 
-  const nodes = Array.from({length: 120}, () => ({
+  const nodes = Array.from({length: 80}, () => ({
     x: (Math.random()-0.5)*2,
     y: (Math.random()-0.5)*2,
     z: (Math.random())*2+0.2
@@ -386,6 +502,9 @@
     document.getElementById('textInput').value = '';
     document.getElementById('output').textContent = '';
   });
+  
+  // Добавляем поддержку касаний
+  document.addEventListener('touchstart', function() {}, {passive: true});
 })();
 </script>
 </body>
