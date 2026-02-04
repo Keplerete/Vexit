@@ -174,6 +174,13 @@
     margin-bottom:10px;
     line-height: 1.4;
   }
+  .note.legend {
+    color: #cfe9ff;
+    background: rgba(20, 40, 60, 0.35);
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(102, 204, 255, 0.25);
+  }
   
   /* Мобильные улучшения */
   @media (max-width: 480px) {
@@ -211,7 +218,7 @@
 
 <header>Vex<span>i</span>T</header>
 
-<p class="description">Онлайн-сервис для перевода текста в реальные и экспериментальные системы кодирования. <strong>Двоичный</strong> и <strong>шестнадцатеричный</strong> коды работают как в настоящем программировании (UTF‑8 байты). Остальные — экспериментальные форматы, похожие на двоичный, кроме инопланетного.</p>
+<p class="description">Онлайн-сервис для перевода текста в реальные и экспериментальные системы кодирования. <strong>Двоичный</strong> и <strong>шестнадцатеричный</strong> коды работают как в настоящем программировании (UTF‑8 байты). Остальные — экспериментальные позиционные системы на основаниях 3–6, которые выглядят как «похожие на двоичный» последовательности, но без лишних ведущих нулей.</p>
 
 <div class="translator" id="translator">
   <label for="textInput">Введите текст для перевода или декодирования:</label>
@@ -253,7 +260,8 @@
     <button class="translate-btn" id="clearBtn" style="background:#223344;color:#ccf3ff">Сброс</button>
   </div>
 
-  <div class="note">Примечание: для двоичного и шестнадцатеричного кодирования используется <em>UTF-8 байтовая</em> модель — это значит, что для нелатинских символов (например, кириллицы) каждый символ может превращаться в несколько байт. Бинарные байты отображаются по 8 бит; HEX — слитно (без пробелов) при горизонтальном варианте.</div>
+  <div class="note">Примечание: для двоичного и шестнадцатеричного кодирования используется <em>UTF-8 байтовая</em> модель — это значит, что для нелатинских символов (например, кириллицы) каждый символ может превращаться в несколько байт. Бинарные байты отображаются по 8 бит; HEX — слитно (без пробелов) при горизонтальном варианте. Экспериментальные системы (3–6) выводятся без лишних ведущих нулей, чтобы код выглядел чище и понятнее.</div>
+  <div class="note legend">Инопланетный код (основание 7) использует собственные символы вместо цифр: 0, ∆, ⧫, ☌, ⚛, ✦, ※ — это соответствия цифрам 0–6.</div>
 
   <pre id="output"></pre>
 </div>
@@ -367,9 +375,18 @@
         }
       });
     } else {
-      const joined = inputStr.replace(/\s+/g, '');
-      for (let i = 0; i < joined.length; i += padLength) {
-        codes.push(joined.slice(i, i + padLength));
+      if ((base === '2' || base === '16') && !/\s/.test(inputStr)) {
+        const joined = inputStr.replace(/\s+/g, '');
+        for (let i = 0; i < joined.length; i += padLength) {
+          codes.push(joined.slice(i, i + padLength));
+        }
+      } else if (/\s/.test(inputStr)) {
+        inputStr.trim().split(/\s+/).forEach(tok => { if (tok) codes.push(tok); });
+      } else {
+        const joined = inputStr.replace(/\s+/g, '');
+        for (let i = 0; i < joined.length; i += padLength) {
+          codes.push(joined.slice(i, i + padLength));
+        }
       }
     }
     return codes;
@@ -442,11 +459,11 @@
           if (version === 'vertical') {
             for (const ch of [...input]) {
               const cp = ch.codePointAt(0);
-              const encoded = cp.toString(baseNum).padStart(padLength, '0');
+              const encoded = cp.toString(baseNum);
               result += `${ch} → ${encoded}\n`;
             }
           } else {
-            const codes = [...input].map(ch => ch.codePointAt(0).toString(baseNum).padStart(padLength, '0'));
+            const codes = [...input].map(ch => ch.codePointAt(0).toString(baseNum));
             result = codes.join(' ');
           }
         }
